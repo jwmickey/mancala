@@ -8,7 +8,7 @@ const game = useGameStore()
 
 function startGame() {
   game.reset();
-  game.setDelay(100)
+  game.setDelay(400)
   game.start()
 }
 
@@ -16,8 +16,14 @@ startGame();
 </script>
 
 <template>
+  <div class="landscape:hidden h-screen w-screen flex flex-col justify-start items-center">
+    <p class="text-3xl p-5">
+      Please rotate your device to landscape mode to play the game
+    </p>
+    <img src="../assets/phone-rotate.svg" alt="Rotate Phone" class="opacity-50 p-10" />
+  </div>
   <div
-    class="h-screen w-screen flex flex-col justify-center items-center max-w-5xl max-h-96 m-auto"
+    class="portrait:hidden h-screen w-screen flex flex-col justify-center items-center max-w-5xl max-h-96 m-auto"
   >
     <div class="flex-1 items-center text-center flex justify-center">
       <span v-if="!game.isGameOver && game.turn === Player.TWO">Player Two, it's your turn!</span>
