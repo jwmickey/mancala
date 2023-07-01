@@ -35,9 +35,12 @@ export async function delay(ms: number): Promise<void> {
 }
 
 function randomMarble(): MarbleColor {
-  const colors = Object.values(MarbleColor)
-  const i = Math.floor(Math.random() * colors.length)
-  return colors[i]
+  return randomFromArray(Object.values(MarbleColor))
+}
+
+function randomFromArray<T = any>(input: T[]) {
+  const i = Math.floor(Math.random() * input.length);
+  return input[i];
 }
 
 function oppositeSlot(slot: number): number {
@@ -72,6 +75,7 @@ function resetGameState() {
 export const useGameStore = defineStore('game', {
   state: resetGameState,
   getters: {
+    isGameOver: (state) => state.gameState === GameState.DONE,
     position: (state) => state.lastPosition,
     p1Store: (state) => state.pods[P1_STORE],
     p2Store: (state) => state.pods[P2_STORE],
@@ -79,9 +83,6 @@ export const useGameStore = defineStore('game', {
     activePlayerSlots: (state) => (state.turn === Player.ONE ? P1_SLOTS : P2_SLOTS),
     delay: (state) => state.delayTime,
     allSlots: (state) => state.pods,
-    isGameOver: ({ pods }) =>
-      !P1_SLOTS.some((idx) => pods[idx].length > 0) ||
-      !P2_SLOTS.some((idx) => pods[idx].length > 0),
     winner: (state) => {
       const p1Score = state.pods[P1_STORE].length
       const p2Score = state.pods[P2_STORE].length
@@ -138,6 +139,9 @@ export const useGameStore = defineStore('game', {
         // otherwise player must start from the last position
         return space === lp
       }
+    },
+    validSpaces(): number[] {
+      return [...P1_SLOTS, ...P2_SLOTS].filter(this.isValidSpace)
     }
   },
   actions: {
@@ -163,8 +167,6 @@ export const useGameStore = defineStore('game', {
       }
     },
     async nextTurn(): Promise<void> {
-      this.gameState = GameState.IN_PROGRESS
-
       // if finished in own side, collect marbles from last position and the slot across the board
       if (
         this.activePlayerSlots.includes(this.lastPosition) &&
@@ -178,11 +180,7 @@ export const useGameStore = defineStore('game', {
 
       this.lastPosition = -1
 
-      if (this.isGameOver) {
-        await this.collectRemaining(Player.ONE)
-        await this.collectRemaining(Player.TWO)
-        this.gameState = GameState.DONE
-      } else if (this.turn === Player.ONE) {
+      if (this.turn === Player.ONE) {
         this.turn = Player.TWO
       } else {
         this.turn = Player.ONE
@@ -190,14 +188,31 @@ export const useGameStore = defineStore('game', {
     },
     async takeTurn(pod: number): Promise<void> {
       if (this.isValidSpace(pod)) {
-        this.gameState = GameState.IN_PROGRESS
         await this.pick(pod)
-        this.gameState = GameState.IN_PROGRESS
+      
         if (this.isTurnOver) {
           await this.nextTurn()
-        } else if (this.finishedInOwnStore) {
-          this.lastPosition = -1
-        }
+        } 
+      }
+
+      const hasEnded = await this.checkEndGame();
+      if (hasEnded) {
+        this.gameState = GameState.DONE
+      } 
+    },
+    async checkEndGame(): Promise<boolean> {
+      const isGameOver = !P1_SLOTS.some((idx) => this.pods[idx].length > 0) 
+                      || !P2_SLOTS.some((idx) => this.pods[idx].length > 0)
+
+      if (isGameOver) {
+        await this.collectRemaining(Player.ONE)
+        await this.collectRemaining(Player.TWO)
+        this.lastPosition = -1
+        this.gameState = GameState.DONE
+        return true;
+      } else {
+        this.gameState = GameState.IN_PROGRESS
+        return false;
       }
     },
     async pick(pod: number): Promise<number> {
@@ -216,11 +231,10 @@ export const useGameStore = defineStore('game', {
         lp++
         this.lastPosition = lp % this.pods.length
 
-        const marble = marbles.pop()
-        if (marble) {
-          await this.placeMarble(this.lastPosition, marble)
-        }
+        const marble = marbles.pop() as MarbleColor
+        await this.placeMarble(this.lastPosition, marble)
       }
+
       return this.lastPosition
     },
     async placeMarble(idx: number, marble: MarbleColor) {
@@ -234,6 +248,14 @@ export const useGameStore = defineStore('game', {
     },
     async clearSlot(idx: number) {
       this.pods[idx] = []
+    },
+    async autoPlay() {
+      this.setDelay(100)
+      let slot = randomFromArray(this.validSpaces);
+      while (slot !== undefined && this.gameState !== GameState.DONE) {
+        await this.takeTurn(slot);
+        slot = randomFromArray(this.validSpaces)
+      }
     }
   }
 })

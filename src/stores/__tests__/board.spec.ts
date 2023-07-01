@@ -210,7 +210,7 @@ describe('mancala game', () => {
     it('keeps the current player when landing in own store', async () => {
       await game.takeTurn(2)
       expect(game.activePlayer).toEqual(Player.ONE)
-      expect(game.lastPosition).toEqual(-1)
+      expect(game.p1Store).toHaveLength(1)
       expect(game.gameState).toEqual(GameState.IN_PROGRESS)
     })
   
@@ -240,6 +240,22 @@ describe('mancala game', () => {
       expect(game.lastPosition).toEqual(-1)
       expect(game.activePlayer).toEqual(Player.TWO)
       expect(game.gameState).toEqual(GameState.IN_PROGRESS)
+    });
+
+    describe('checkEndGame', () => {
+      it.each([
+        [Player.ONE, P1_SLOTS], [Player.TWO, P2_SLOTS]
+      ])('is over when no %s slots have marbles', async (_player, slots) => {
+        const updated = game.pods;
+        for (const slot in slots) {
+          updated[slot] = [];
+        }
+        game.$patch({
+          pods: updated,
+          gameState: GameState.IN_PROGRESS
+        });
+        expect(await game.checkEndGame()).toBe(true);
+      });
     });
 
     describe('nextTurn', () => {
@@ -275,8 +291,10 @@ describe('mancala game', () => {
         });
         expect(game.isTurnOver).toBe(true);
         const collectSpy = vitest.spyOn(game, 'collectRemaining');
-        await game.nextTurn();
-        expect(game.isGameOver).toBe(true);
+        const checkEndSpy = vitest.spyOn(game, 'checkEndGame');
+        await game.takeTurn(4);
+        expect(checkEndSpy).toHaveBeenCalled();
+        expect(checkEndSpy).toReturnWith(true);
         expect(collectSpy).toHaveBeenCalledWith(Player.ONE);
         expect(collectSpy).toHaveBeenCalledWith(Player.TWO);
       });

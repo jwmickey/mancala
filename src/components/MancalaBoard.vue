@@ -8,8 +8,7 @@ const game = useGameStore()
 
 function startGame() {
   game.reset();
-  game.setDelay(400)
-  game.start()
+  game.setDelay(350)
 }
 
 startGame();
@@ -36,8 +35,9 @@ startGame();
       <div
         class="relative grid grid-cols-8 grid-flow-col border p-8 gap-8 justify-center items-center max-w-2xl"
       >
-        <div v-if="game.gameState === GameState.DONE" class="absolute top-0 bottom-0 left-0 right-0 backdrop-blur-sm flex flex-col justify-evenly items-center">
-          <span class="text-3xl font-bold">Player {{ game.winner === Player.ONE ? '1' : '2' }} Wins!</span>
+        <div v-if="game.isGameOver" class="absolute top-0 bottom-0 left-0 right-0 backdrop-blur-sm flex flex-col justify-evenly items-center">
+          <span v-if="game.winner !== -1" class="text-3xl font-bold">Player {{ game.winner === Player.ONE ? '1' : '2' }} Wins!</span>
+          <span v-else class="text-3xl font-bold">It's a tie!</span>
           <button class="text-xl border-4 border-green-700 bg-white py-1 px-2 rounded-md" @click="startGame()">Play Again</button>
         </div>
         <BoardStore
@@ -50,7 +50,7 @@ startGame();
           @click="game.takeTurn(i)"
           :marbles="game.slot(i)"
           :current="game.lastPosition === i"
-          :clickable="game.gameState === GameState.IN_PROGRESS && game.isValidSpace(i)"
+          :clickable="game.gameState !== GameState.PLACING_MARBLES && game.isValidSpace(i)"
           :class="{ [`order-${i}`]: true }"
           :key="'space-' + i"
           >{{ i }}
@@ -69,5 +69,14 @@ startGame();
     <div class="flex-1 items-center text-center flex justify-center">
       <span v-if="!game.isGameOver && game.turn === Player.ONE">Player One, it's your turn!</span>
     </div>
+    <button 
+      :disabled="game.gameState !== GameState.NOT_STARTED" 
+      @click="game.autoPlay()"
+      class="border border-gray-700 bg-white py-1 px-2 rounded-md"
+      :class="{
+        'bg-slate-100': game.gameState !== GameState.NOT_STARTED,
+        'text-gray-500': game.gameState !== GameState.NOT_STARTED,
+        'border-slate-400': game.gameState !== GameState.NOT_STARTED
+      }">Auto Play</button>
   </div>
 </template>

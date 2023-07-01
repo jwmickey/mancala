@@ -17,7 +17,7 @@ function margin(direction: 't' | 'l', offset: number) {
 
 <template>
   <div
-    class="rounded-full aspect-square w-4 h-4"
+    class="rounded-full aspect-square w-3 h-3"
     :class="{
       [props.color]: true,
       [margin('t', props.offsetY)]: true,
