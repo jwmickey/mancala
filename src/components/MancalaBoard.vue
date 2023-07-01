@@ -2,13 +2,15 @@
 import BoardStore from './BoardStore.vue'
 import BoardSpace from './BoardSpace.vue'
 import { useGameStore, Player, P1_STORE, P2_STORE, GameState } from '../stores/board'
+import { loadPreferences } from '@/preferences';
 
 const SPACE_ARRANGEMENT = [12, 0, 11, 1, 10, 2, 9, 3, 8, 4, 7, 5]
 const game = useGameStore()
+const preferences = loadPreferences();
 
 function startGame() {
   game.reset();
-  game.setDelay(350)
+  game.setDelay(preferences.delay)
 }
 
 startGame();
@@ -16,7 +18,7 @@ startGame();
 
 <template>
   <div class="landscape:hidden h-screen w-screen flex flex-col justify-start items-center">
-    <p class="text-3xl p-5">
+    <p class="text-3xl p-4 mt-6">
       Please rotate your device to landscape mode to play the game
     </p>
     <img src="../assets/phone-rotate.svg" alt="Rotate Phone" class="opacity-50 p-10" />
@@ -25,7 +27,7 @@ startGame();
     class="portrait:hidden h-screen w-screen flex flex-col justify-center items-center max-w-5xl max-h-96 m-auto"
   >
     <div class="flex-1 items-center text-center flex justify-center">
-      <span v-if="!game.isGameOver && game.turn === Player.TWO">Player Two, it's your turn!</span>
+      <span class="font-extrabold" v-if="!game.isGameOver && game.turn === Player.TWO">Player Two, it's your turn!</span>
     </div>
     <div class="flex flex-1 w-full justify-center items-center">
       <div class="flex-1 text-center flex flex-col">
@@ -67,12 +69,12 @@ startGame();
       </div>
     </div>
     <div class="flex-1 items-center text-center flex justify-center">
-      <span v-if="!game.isGameOver && game.turn === Player.ONE">Player One, it's your turn!</span>
+      <span class="font-extrabold" v-if="!game.isGameOver && game.turn === Player.ONE">Player One, it's your turn!</span>
     </div>
     <button 
       :disabled="game.gameState !== GameState.NOT_STARTED" 
       @click="game.autoPlay()"
-      class="border border-gray-700 bg-white py-1 px-2 rounded-md"
+      class="border border-gray-700 bg-white py-1 px-2 rounded-md self-start ml-1 text-sm"
       :class="{
         'bg-slate-100': game.gameState !== GameState.NOT_STARTED,
         'text-gray-500': game.gameState !== GameState.NOT_STARTED,
